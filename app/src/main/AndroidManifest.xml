@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 麦克风：长按输入框进行本地语音转文字 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- 存储：应用内文件选择器导入模型（用户主动导入时授予「所有文件访问」） -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <!-- 联网：仅用于模型网络下载（兜底通道），日常使用完全离线 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 语音识别与翻译需要麦克风硬件 -->
+    <uses-feature android:name="android.hardware.microphone" android:required="true" />
+    <!-- 手表应用 -->
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <application
+        android:name=".QingYiApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.QingYi"
+        android:usesCleartextTraffic="false"
+        android:enableOnBackInvokedCallback="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.QingYi"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
