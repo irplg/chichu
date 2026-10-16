@@ -147,6 +147,12 @@ class ModelDownloader(
             if (!resp.isSuccessful) {
                 throw DownloadException("HTTP ${resp.code} for $url")
             }
+            // 镜像时效性防护：部分镜像故障时返回 200 + HTML 错误页（而非正确错误码），
+            // 提前按 Content-Type 拦截，避免把错误页当模型下载
+            val contentType = resp.header("Content-Type")?.lowercase()?.substringBefore(';')
+            if (contentType != null && (contentType.startsWith("text/html") || contentType.startsWith("application/xhtml"))) {
+                throw DownloadException("镜像返回错误页（Content-Type: $contentType, $url）")
+            }
             val supportsRange = resp.code == 206
             // 校验远端文件大小（Content-Range: bytes 0-0/<total> 或 Content-Length）
             val remoteTotal = when {
