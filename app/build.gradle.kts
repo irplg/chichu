@@ -10,10 +10,10 @@ android {
 
     defaultConfig {
         applicationId = "com.easytranslate.chichu"
-        minSdk = 30
+        minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
         resourceConfigurations += listOf("zh", "en")
     }
 

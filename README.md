@@ -5,7 +5,7 @@
 完全离线的 Wear OS 手表翻译应用：**本地中英文语音识别 + 本地双向翻译**。
 APK 仅 37MB，模型不内置——首次使用前在设置中**导入**（应用内文件选择器）或**联网下载**（内置多线程下载器），详见随附《模型下载指南.md》。
 
-- 软件名：**轻译** · 包名 `com.easytranslate.chichu` · minSdk 30（Wear OS 3+）
+- 软件名：**轻译** · 包名 `com.easytranslate.chichu` · minSdk 29（Android 10+，覆盖 Wear OS 2.x 老手表、Wear OS 3+ 与安卓手机）
 - 处理器支持：**arm64-v8a + armeabi-v7a（32 位老手表）**
 - UI：Jetpack Compose for Wear，Material 3 for Wear（`androidx.wear.compose:compose-material3`）
 - 图标：灰底白字（用户提供）
@@ -145,7 +145,8 @@ chichu/
 | 权限 | 用途 |
 | --- | --- |
 | `RECORD_AUDIO` | 长按听写 |
-| `MANAGE_EXTERNAL_STORAGE` | 文件选择器浏览手表存储（Wear OS 需 adb 授权一次，见《模型下载指南》） |
+| `MANAGE_EXTERNAL_STORAGE` | 文件选择器浏览外部存储（Android 11+；Wear OS 3 需 adb 授权一次，见《模型下载指南》） |
+| `READ/WRITE_EXTERNAL_STORAGE` | 同上，仅 Android 10 及以下生效（系统弹窗授权，配合 `requestLegacyExternalStorage`） |
 | `INTERNET` | 仅模型网络下载通道 |
 
 ## 使用的开源项目

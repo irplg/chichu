@@ -3,8 +3,15 @@
 
     <!-- 麦克风：长按输入框进行本地语音转文字 -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- 存储：应用内文件选择器导入模型（用户主动导入时授予「所有文件访问」） -->
+    <!-- 存储：Android 11+ 用「所有文件访问」（需 adb/设置页授权）；
+         Android 10 及以下用传统读写权限（运行时弹窗授权，requestLegacyExternalStorage 直接路径访问） -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
     <!-- 联网：仅用于模型网络下载（兜底通道），日常使用完全离线 -->
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -22,6 +29,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.QingYi"
         android:usesCleartextTraffic="false"
+        android:requestLegacyExternalStorage="true"
         android:enableOnBackInvokedCallback="true">
 
         <activity

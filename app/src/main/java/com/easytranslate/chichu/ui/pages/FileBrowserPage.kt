@@ -1,10 +1,15 @@
 package com.easytranslate.chichu.ui.pages
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +35,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
@@ -48,7 +54,9 @@ import kotlinx.coroutines.delay
 /**
  * 应用内文件选择器：浏览外部存储，点按与模型目录匹配的文件即导入。
  *
- * - 根目录为外部存储（/sdcard），需「所有文件访问」权限（首次进入时引导授权）
+ * - 根目录为外部存储（/sdcard），需存储访问权限（首次进入时引导授权）：
+ *   Android 11+ 走「所有文件访问」设置页；Android 10 及以下走 WRITE_EXTERNAL_STORAGE
+ *   运行时弹窗授权（配合 requestLegacyExternalStorage 直接路径访问）
  * - 匹配规则与 [QingYiViewModel.importModel] 一致：父目录名优先，其次按文件名
  * - 导入写 files/models/<dirName>/，.part 临时文件 + 大小校验后原子改名
  */
@@ -57,14 +65,21 @@ fun FileBrowserPage(viewModel: QingYiViewModel, onClose: () -> Unit) {
     BackHandler { onClose() }
     val context = LocalContext.current
 
-    var hasAccess by remember { mutableStateOf(Environment.isExternalStorageManager()) }
+    var hasAccess by remember { mutableStateOf(hasStorageAccess(context)) }
+
+    // Android 10 及以下：WRITE_EXTERNAL_STORAGE 运行时权限弹窗（授予/拒绝后重检）
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        hasAccess = granted || hasStorageAccess(context)
+    }
 
     // 从系统设置返回后重新检查权限
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                hasAccess = Environment.isExternalStorageManager()
+                hasAccess = hasStorageAccess(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -74,19 +89,25 @@ fun FileBrowserPage(viewModel: QingYiViewModel, onClose: () -> Unit) {
     if (!hasAccess) {
         PermissionPage(
             onGrant = {
-                val intent = try {
-                    Intent(
-                        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                        Uri.parse("package:${context.packageName}"),
-                    )
-                } catch (e: Exception) {
-                    null
-                } ?: Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                try {
-                    context.startActivity(intent)
-                } catch (e: Exception) {
-                    // Wear OS 无应用内授权页：提示 adb 授权命令（详见《模型下载指南》）
-                    viewModel.showAdbHint()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    // Android 11+：跳系统「所有文件访问」设置页
+                    val intent = try {
+                        Intent(
+                            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                            Uri.parse("package:${context.packageName}"),
+                        )
+                    } catch (e: Exception) {
+                        null
+                    } ?: Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        // Wear OS 无应用内授权页：提示 adb 授权命令（详见《模型下载指南》）
+                        viewModel.showAdbHint()
+                    }
+                } else {
+                    // Android 10 及以下：系统弹窗请求读写权限
+                    permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 }
             },
         )
@@ -298,7 +319,22 @@ fun FileBrowserPage(viewModel: QingYiViewModel, onClose: () -> Unit) {
     }
 }
 
-/** 未授权「所有文件访问」时的引导页（Wear OS 无应用内授权页，需 adb 授权一次） */
+/**
+ * 存储访问权限检查（按系统版本分流）：
+ * - Android 11+（API 30+）：「所有文件访问」MANAGE_EXTERNAL_STORAGE
+ * - Android 10 及以下：WRITE_EXTERNAL_STORAGE 运行时权限（配合 requestLegacyExternalStorage）
+ */
+private fun hasStorageAccess(context: android.content.Context): Boolean =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        Environment.isExternalStorageManager()
+    } else {
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+/** 未授予存储访问权限时的引导页（Android 11+ Wear OS 无应用内授权页，需 adb 授权一次） */
 @Composable
 private fun PermissionPage(onGrant: () -> Unit) {
     Column(
